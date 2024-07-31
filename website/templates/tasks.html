@@ -34,6 +34,9 @@
             margin: 5px 0;
             padding: 10px;
             border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .logout {
             float: right;
@@ -56,6 +59,14 @@
         }
         button:hover {
             background: #555;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            border: none;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
         }
     </style>
 </head>
@@ -82,7 +93,12 @@
         <h2>Your Tasks:</h2>
         <ul>
             {% for task in tasks %}
-                <li>{{ task }}</li>
+                <li>
+                    {{ task['task'] }}
+                    <form action="{{ url_for('delete_task', task_id=task['_id']) }}" method="post" style="display:inline;">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </li>
             {% else %}
                 <li>No tasks yet. Add a task above!</li>
             {% endfor %}

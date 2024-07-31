@@ -67,7 +67,7 @@ def add_task():
     flash(f'Task added: {task}')
     return redirect(url_for('tasks'))
 
-@app.route('/delete_task/<task_id>')
+@app.route('/delete_task/<task_id>', methods=['POST'])
 def delete_task(task_id):
     if 'username' not in session:
         return redirect(url_for('home'))
