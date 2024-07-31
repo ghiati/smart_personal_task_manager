@@ -1,10 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from website.models import User
+from bson.objectid import ObjectId
+import bcrypt
+from website.database import get_users_collection, get_tasks_collection
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'My_secret_key'
 
-users = {}
+# Get database collections
+users_collection = get_users_collection()
+tasks_collection = get_tasks_collection()
 
 @app.route('/')
 def home():
@@ -17,10 +21,13 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        if username in users:
+        
+        existing_user = users_collection.find_one({'username': username})
+        if existing_user:
             flash("Username already exists")
         else:
-            users[username] = User(username, password)
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            users_collection.insert_one({'username': username, 'password': hashed_password})
             session['username'] = username
             return redirect(url_for('tasks'))
     return render_template('register.html')
@@ -29,8 +36,9 @@ def register():
 def login():
     username = request.form['username']
     password = request.form['password']
-    user = users.get(username)
-    if user and user.check_password(password):
+    
+    user = users_collection.find_one({'username': username})
+    if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
         session['username'] = username
         return redirect(url_for('tasks'))
     flash("Invalid username or password")
@@ -46,10 +54,7 @@ def tasks():
     if 'username' not in session:
         return redirect(url_for('home'))
     
-    # In a real application, you'd fetch tasks from a database
-    # For this example, we'll use a dummy list
-    user_tasks = ['Complete project', 'Buy groceries', 'Exercise']
-    
+    user_tasks = tasks_collection.find({'username': session['username']})
     return render_template('tasks.html', tasks=user_tasks)
 
 @app.route('/add_task', methods=['POST'])
@@ -58,10 +63,21 @@ def add_task():
         return redirect(url_for('home'))
     
     task = request.form['task']
-    # Here you would typically add the task to a database
-    # For this example, we'll just flash a message
+    tasks_collection.insert_one({'username': session['username'], 'task': task})
     flash(f'Task added: {task}')
     return redirect(url_for('tasks'))
 
+@app.route('/delete_task/<task_id>')
+def delete_task(task_id):
+    if 'username' not in session:
+        return redirect(url_for('home'))
+    
+    tasks_collection.delete_one({'_id': ObjectId(task_id), 'username': session['username']})
+    flash('Task deleted')
+    return redirect(url_for('tasks'))
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    if users_collection and tasks_collection:
+        app.run(debug=True)
+    else:
+        print("Error: Could not connect to the database. Application not started.")
