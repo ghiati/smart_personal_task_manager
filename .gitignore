@@ -1,0 +1,17 @@
+# Python
+*.pyc
+__pycache__/
+venv/
+task_manger/
+
+
+# Flask
+instance/
+*.log
+
+# MongoDB
+*.db
+
+# System Files
+.DS_Store
+Thumbs.db
